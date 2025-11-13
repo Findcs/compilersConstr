@@ -381,6 +381,7 @@ class Parser:
         self.eat(TokenType.SEMI)
         return VarDeclStmt(name, init)
 
+
     def parse_input(self) -> Stmt:
         self.eat(TokenType.KW_INPUT)
         self.eat(TokenType.LPAREN)

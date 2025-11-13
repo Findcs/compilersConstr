@@ -1,0 +1,20 @@
+Anton {
+    let a = 10;
+    let b = 20;
+
+    if (a < b) {
+        print("a меньше b");
+    } else {
+        print("a не меньше b");
+    }
+
+    if (a == 10 and b == 20) {
+        print("оба условия верны");
+    } else {
+        print("что-то пошло не так");
+    }
+
+    if (not (a == b)) {
+        print("a и b не равны");
+    }
+}

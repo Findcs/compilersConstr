@@ -1,0 +1,29 @@
+Anton {
+    let age = 18;
+    let name = "Anton";
+    let isStudent = true;
+    let msg = "Привет, ";
+
+    // Конкатенация строк
+    let full = msg + name;
+    print(full);
+
+    // Логические выражения в if
+    if (age >= 18 and isStudent) {
+        print("Совершеннолетний студент");
+    }
+
+    if (age > 30 or isStudent) {
+        print("Хотя бы одно условие верно");
+    }
+
+    // Арифметика
+    let a = 15;
+    let b = 4;
+
+    print("a + b =", a + b);
+    print("a - b =", a - b);
+    print("a * b =", a * b);
+    print("a / b =", a / b);
+    print("a % b =", a % b);
+}

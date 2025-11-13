@@ -1,0 +1,13 @@
+Anton {
+    // Простейшие переменные и вывод
+    let x = 5;
+    let y = 7;
+    let msg = "Hello, Anton!";
+
+    print(msg);
+    print("x + y =", x + y);
+
+    // Переприсваивание
+    x = x + 10;
+    print("new x =", x);
+}

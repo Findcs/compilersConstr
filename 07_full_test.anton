@@ -1,0 +1,27 @@
+Anton {
+    let x = 0;
+    let sum = 0;
+    let text = "Считаю до 5";
+
+    print(text);
+
+    while (x < 5) {
+        x = x + 1;
+        sum = sum + x;
+
+        if (x % 2 == 0) {
+            print("чётное", x);
+        } else {
+            print("нечётное", x);
+        }
+    }
+
+    print("сумма от 1 до 5 =", sum);
+
+    // Проверка логики
+    if (sum == 15 and not (x < 5)) {
+        print("проверка прошла успешно");
+    } else {
+        print("что-то не сошлось");
+    }
+}

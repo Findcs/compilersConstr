@@ -8,34 +8,39 @@ import os
 # ==========================
 
 class TokenType:
-    # однобуквенные
-    LBRACE = "LBRACE"
-    RBRACE = "RBRACE"
-    LPAREN = "LPAREN"
-    RPAREN = "RPAREN"
-    SEMI = "SEMI"
-    COMMA = "COMMA"
-    PLUS = "PLUS"
-    MINUS = "MINUS"
-    STAR = "STAR"
-    SLASH = "SLASH"
-    PERCENT = "PERCENT"
-    ASSIGN = "ASSIGN"
+    """
+    Перечисление типов токенов.
+    Это просто набор строковых констант.
+    """
+    # Однобуквенные разделители / скобки / операторы
+    LBRACE = "LBRACE"    # {
+    RBRACE = "RBRACE"    # }
+    LPAREN = "LPAREN"    # (
+    RPAREN = "RPAREN"    # )
+    SEMI = "SEMI"        # ;
+    COMMA = "COMMA"      # ,
+    PLUS = "PLUS"        # +
+    MINUS = "MINUS"      # -
+    STAR = "STAR"        # *
+    SLASH = "SLASH"      # /
+    PERCENT = "PERCENT"  # %
+    ASSIGN = "ASSIGN"    # =
 
-    # сравнения
-    EQ = "EQ"
-    NEQ = "NEQ"
-    LT = "LT"
-    LTE = "LTE"
-    GT = "GT"
-    GTE = "GTE"
+    # Операторы сравнения
+    EQ = "EQ"            # ==
+    NEQ = "NEQ"          # !=
+    LT = "LT"            # <
+    LTE = "LTE"          # <=
+    GT = "GT"            # >
+    GTE = "GTE"          # >=
 
-    # ключевые слова / типы
-    IDENT = "IDENT"
-    NUMBER = "NUMBER"
-    STRING = "STRING"
-    BOOL = "BOOL"
+    # Типы лексем
+    IDENT = "IDENT"      # идентификатор
+    NUMBER = "NUMBER"    # целое число
+    STRING = "STRING"    # строка
+    BOOL = "BOOL"        # true / false
 
+    # Ключевые слова языка Anton
     KW_ANTON = "ANTON"
     KW_LET = "LET"
     KW_IF = "IF"
@@ -47,9 +52,11 @@ class TokenType:
     KW_OR = "OR"
     KW_NOT = "NOT"
 
+    # Конец файла
     EOF = "EOF"
 
 
+# Отображение строк-ключевых слов в тип токена
 KEYWORDS = {
     "Anton": TokenType.KW_ANTON,
     "let": TokenType.KW_LET,
@@ -68,31 +75,44 @@ KEYWORDS = {
 
 @dataclass
 class Token:
+    """
+    Токен: тип, значение и позиция в исходном тексте.
+    pos — индекс символа в исходной строке.
+    """
     type: str
     value: Any
     pos: int
 
 
 class Lexer:
+    """
+    Лексический анализатор.
+    На вход: исходный текст.
+    На выход: поток токенов через next_token().
+    """
     def __init__(self, text: str):
         self.text = text
-        self.pos = 0
+        self.pos = 0   # текущая позиция в строке
 
     def peek(self) -> str:
+        """Текущий символ (не сдвигая позицию)."""
         if self.pos >= len(self.text):
             return "\0"
         return self.text[self.pos]
 
     def advance(self):
+        """Сдвинуться на один символ вперёд."""
         self.pos += 1
 
     def match(self, expected: str) -> bool:
+        """Если текущий символ равен expected — съесть его и вернуть True."""
         if self.peek() == expected:
             self.advance()
             return True
         return False
 
     def skip_whitespace_and_comments(self):
+        """Пропуск пробелов, табов, переводов строк и //-комментариев."""
         while True:
             c = self.peek()
             if c in " \t\r\n":
@@ -105,18 +125,21 @@ class Lexer:
                 break
 
     def identifier_or_keyword(self) -> Token:
+        """Считать идентификатор или ключевое слово."""
         start = self.pos
         self.advance()  # первая буква / _
         while self.peek().isalnum() or self.peek() == "_":
             self.advance()
         text = self.text[start:self.pos]
         ttype = KEYWORDS.get(text, TokenType.IDENT)
+        # обрабатываем true/false как BOOL со значением Python
         if ttype == TokenType.BOOL:
             value = True if text == "true" else False
             return Token(TokenType.BOOL, value, start)
         return Token(ttype, text, start)
 
     def number(self) -> Token:
+        """Считать целое число."""
         start = self.pos
         while self.peek().isdigit():
             self.advance()
@@ -124,6 +147,7 @@ class Lexer:
         return Token(TokenType.NUMBER, int(text), start)
 
     def string(self) -> Token:
+        """Считать строку в двойных кавычках, с простыми escape-последовательностями."""
         start = self.pos
         self.advance()  # opening "
         chars = []
@@ -145,6 +169,7 @@ class Lexer:
                 elif esc == "\\":
                     chars.append("\\")
                 else:
+                    # неизвестный символ после \ — просто добавляем его
                     chars.append(esc)
                 self.advance()
             else:
@@ -153,6 +178,10 @@ class Lexer:
         return Token(TokenType.STRING, "".join(chars), start)
 
     def next_token(self) -> Token:
+        """
+        Главный метод лексера.
+        Возвращает следующий токен (и продвигает позицию).
+        """
         self.skip_whitespace_and_comments()
         start = self.pos
         c = self.peek()
@@ -227,14 +256,15 @@ class Lexer:
                 return Token(TokenType.GTE, ">=", start)
             return Token(TokenType.GT, ">", start)
 
+        # если символ ни к чему не подходит — ошибка
         raise SyntaxError(f"Unexpected character {c!r} at {start}")
 
 
 # ==========================
-#   AST
+#   AST (абстрактное синтаксическое дерево)
 # ==========================
 
-# Выражения
+# Базовый класс выражений
 class Expr: ...
 
 
@@ -260,52 +290,60 @@ class VarExpr(Expr):
 
 @dataclass
 class BinaryExpr(Expr):
+    """Бинарная операция: left OP right"""
     left: Expr
-    op: str  # TokenType
+    op: str  # тип токена (TokenType)
     right: Expr
 
 
 @dataclass
 class UnaryExpr(Expr):
+    """Унарная операция: OP expr (например, not expr)"""
     op: str
     expr: Expr
 
 
-# Стейтменты
+# Базовый класс стейтментов
 class Stmt: ...
 
 
 @dataclass
 class VarDeclStmt(Stmt):
+    """let name = init;"""
     name: str
     init: Optional[Expr]
 
 
 @dataclass
 class AssignStmt(Stmt):
+    """name = expr;"""
     name: str
     expr: Expr
 
 
 @dataclass
 class InputStmt(Stmt):
+    """input(name);"""
     name: str
 
 
 @dataclass
 class PrintStmt(Stmt):
+    """print(expr1, expr2, ...);"""
     args: List[Expr]
 
 
 @dataclass
 class IfStmt(Stmt):
-    cond: Expr  # LogicExpr, но для простоты Expr
+    """if (cond) { ... } [else { ... }]"""
+    cond: Expr  # LogicExpr по сути
     then_branch: List[Stmt]
     else_branch: Optional[List[Stmt]]
 
 
 @dataclass
 class WhileStmt(Stmt):
+    """while (cond) { ... }"""
     cond: Expr
     body: List[Stmt]
 
@@ -315,11 +353,19 @@ class WhileStmt(Stmt):
 # ==========================
 
 class Parser:
+    """
+    Рекурсивный спускающийся парсер.
+    Берёт токены от лексера и строит AST.
+    """
     def __init__(self, lexer: Lexer):
         self.lexer = lexer
-        self.current = self.lexer.next_token()
+        self.current = self.lexer.next_token()  # текущий токен
 
     def eat(self, token_type: str) -> Token:
+        """
+        Проверить, что текущий токен нужного типа, и съесть его.
+        Если тип не совпадает — синтаксическая ошибка.
+        """
         if self.current.type == token_type:
             tok = self.current
             self.current = self.lexer.next_token()
@@ -327,6 +373,10 @@ class Parser:
         raise SyntaxError(f"Expected {token_type}, got {self.current.type} at pos {self.current.pos}")
 
     def match(self, *types) -> bool:
+        """
+        Если текущий токен — один из указанных типов, съесть его и вернуть True.
+        Иначе — вернуть False.
+        """
         if self.current.type in types:
             self.current = self.lexer.next_token()
             return True
@@ -335,6 +385,9 @@ class Parser:
     # ----- Верхний уровень -----
 
     def parse_program(self) -> List[Stmt]:
+        """
+        Program = "Anton" , Block , EOF ;
+        """
         self.eat(TokenType.KW_ANTON)
         stmts = self.parse_block()
         if self.current.type != TokenType.EOF:
@@ -342,6 +395,9 @@ class Parser:
         return stmts
 
     def parse_block(self) -> List[Stmt]:
+        """
+        Block = "{" , { Statement } , "}" ;
+        """
         self.eat(TokenType.LBRACE)
         stmts: List[Stmt] = []
         while self.current.type != TokenType.RBRACE:
@@ -352,6 +408,9 @@ class Parser:
     # ----- Стейтменты -----
 
     def parse_statement(self) -> Stmt:
+        """
+        Определяем, какой стейтмент дальше по текущему токену.
+        """
         if self.current.type == TokenType.KW_LET:
             return self.parse_var_decl()
         if self.current.type == TokenType.KW_INPUT:
@@ -363,7 +422,7 @@ class Parser:
         if self.current.type == TokenType.KW_WHILE:
             return self.parse_while()
         if self.current.type == TokenType.IDENT:
-            # присваивание
+            # Присваивание: name = expr;
             name = self.current.value
             self.eat(TokenType.IDENT)
             self.eat(TokenType.ASSIGN)
@@ -373,6 +432,9 @@ class Parser:
         raise SyntaxError(f"Unexpected token {self.current.type} in statement at {self.current.pos}")
 
     def parse_var_decl(self) -> Stmt:
+        """
+        VarDecl = "let" , Identifier , [ "=" , Expression ] , ";" ;
+        """
         self.eat(TokenType.KW_LET)
         name = self.eat(TokenType.IDENT).value
         init = None
@@ -381,8 +443,10 @@ class Parser:
         self.eat(TokenType.SEMI)
         return VarDeclStmt(name, init)
 
-
     def parse_input(self) -> Stmt:
+        """
+        InputStmt = "input" , "(" , Identifier , ")" , ";" ;
+        """
         self.eat(TokenType.KW_INPUT)
         self.eat(TokenType.LPAREN)
         name = self.eat(TokenType.IDENT).value
@@ -391,6 +455,9 @@ class Parser:
         return InputStmt(name)
 
     def parse_print(self) -> Stmt:
+        """
+        PrintStmt = "print" , "(" , [ Expression , { "," , Expression } ] , ")" , ";" ;
+        """
         self.eat(TokenType.KW_PRINT)
         self.eat(TokenType.LPAREN)
         args: List[Expr] = []
@@ -403,6 +470,9 @@ class Parser:
         return PrintStmt(args)
 
     def parse_if(self) -> Stmt:
+        """
+        IfStmt = "if" , "(" , LogicExpr , ")" , Block , [ "else" , Block ] ;
+        """
         self.eat(TokenType.KW_IF)
         self.eat(TokenType.LPAREN)
         cond = self.parse_logic_expr()
@@ -414,6 +484,9 @@ class Parser:
         return IfStmt(cond, then_branch, else_branch)
 
     def parse_while(self) -> Stmt:
+        """
+        WhileStmt = "while" , "(" , LogicExpr , ")" , Block ;
+        """
         self.eat(TokenType.KW_WHILE)
         self.eat(TokenType.LPAREN)
         cond = self.parse_logic_expr()
@@ -422,9 +495,14 @@ class Parser:
         return WhileStmt(cond, body)
 
     # ----- Логические выражения -----
+    # Соответствуют:
+    # LogicExpr -> OrChain
+    # OrChain   -> AndChain { 'or' AndChain }
+    # AndChain  -> NotChain { 'and' NotChain }
+    # NotChain  -> ['not'] CompareExpr
 
     def parse_logic_expr(self) -> Expr:
-        # OrChain = AndChain { 'or' AndChain }
+        """OrChain = AndChain { 'or' AndChain }"""
         expr = self.parse_and_chain()
         while self.current.type == TokenType.KW_OR:
             op = self.current.type
@@ -434,6 +512,7 @@ class Parser:
         return expr
 
     def parse_and_chain(self) -> Expr:
+        """AndChain = NotChain { 'and' NotChain }"""
         expr = self.parse_not_chain()
         while self.current.type == TokenType.KW_AND:
             op = self.current.type
@@ -443,15 +522,23 @@ class Parser:
         return expr
 
     def parse_not_chain(self) -> Expr:
+        """
+        NotChain = ['not'] CompareExpr;
+        Здесь реализовано как унарный оператор, повторяющий уровень:
+        notChain -> 'not' notChain | compareExpr
+        """
         if self.current.type == TokenType.KW_NOT:
             op = self.current.type
             self.eat(TokenType.KW_NOT)
-            inner = self.parse_not_chain()  # рекурсивно, как обсуждали
+            inner = self.parse_not_chain()  # рекурсивно
             return UnaryExpr(op, inner)
         return self.parse_compare_expr()
 
     def parse_compare_expr(self) -> Expr:
-        # Expression [ CompareOp Expression ]
+        """
+        CompareExpr = Expression [ CompareOp Expression ] ;
+        CompareOp   = "==" | "!=" | "<" | "<=" | ">" | ">=" ;
+        """
         expr = self.parse_expression()
         if self.current.type in (TokenType.EQ, TokenType.NEQ,
                                  TokenType.LT, TokenType.LTE,
@@ -462,10 +549,12 @@ class Parser:
             expr = BinaryExpr(expr, op, right)
         return expr
 
-    # ----- Арифметика / логика в выражениях -----
+    # ----- Арифметика в выражениях -----
+    # Expression = Term { ("+" | "-") Term }
+    # Term       = Factor { ("*" | "/" | "%") NumericFactor }
 
     def parse_expression(self) -> Expr:
-        # Expression = Term { ("+" | "-") Term }
+        """Expression = Term { ("+" | "-") Term }"""
         expr = self.parse_term()
         while self.current.type in (TokenType.PLUS, TokenType.MINUS):
             op = self.current.type
@@ -475,10 +564,11 @@ class Parser:
         return expr
 
     def parse_term(self) -> Expr:
-        # Term = Factor | MulDivTerm
-        # здесь реализуем как обычный приоритет: *, /, %
+        """
+        Term = Factor { ("*" | "/" | "%") NumericFactor }
+        Здесь шьём Factor и NumericFactor, чтобы запретить умножение/деление строк.
+        """
         expr = self.parse_factor()
-        # если дальше * / % — это MulDivTerm
         while self.current.type in (TokenType.STAR, TokenType.SLASH, TokenType.PERCENT):
             op = self.current.type
             self.eat(self.current.type)
@@ -487,6 +577,9 @@ class Parser:
         return expr
 
     def parse_factor(self) -> Expr:
+        """
+        Factor = Number | String | Bool | Identifier | "(" , LogicExpr , ")" ;
+        """
         tok = self.current
         if tok.type == TokenType.NUMBER:
             self.eat(TokenType.NUMBER)
@@ -502,15 +595,18 @@ class Parser:
             return VarExpr(tok.value)
         if tok.type == TokenType.LPAREN:
             self.eat(TokenType.LPAREN)
-            # БЫЛО: expr = self.parse_expression()
-            # ДОЛЖНО БЫТЬ:
+            # Внутри скобок может быть полное логическое выражение с and/or/== и т.д.
             expr = self.parse_logic_expr()
             self.eat(TokenType.RPAREN)
             return expr
         raise SyntaxError(f"Unexpected token {tok.type} in expression at {tok.pos}")
 
     def parse_factor_numeric(self) -> Expr:
-        """NumericFactor: Number | Identifier | '(' Expression ')'"""
+        """
+        NumericFactor = Number | Identifier | '(' Expression ')'
+        Используется для правых аргументов * / %,
+        чтобы строки туда не попадали.
+        """
         tok = self.current
         if tok.type == TokenType.NUMBER:
             self.eat(TokenType.NUMBER)
@@ -531,32 +627,43 @@ class Parser:
 # ==========================
 
 class Environment:
+    """
+    Окружение: хранит значения переменных.
+    По сути — словарь name -> value.
+    """
     def __init__(self):
         self.vars = {}
 
     def declare(self, name: str, value: Any = None):
+        """Объявление переменной (let). Запрещает повторное объявление."""
         if name in self.vars:
             raise RuntimeError(f"Variable '{name}' already declared")
         self.vars[name] = value
 
     def set(self, name: str, value: Any):
+        """Присваивание существующей переменной."""
         if name not in self.vars:
             raise RuntimeError(f"Undeclared variable '{name}'")
         self.vars[name] = value
 
     def get(self, name: str) -> Any:
+        """Чтение значения переменной."""
         if name not in self.vars:
             raise RuntimeError(f"Undeclared variable '{name}'")
         return self.vars[name]
 
 
 class Interpreter:
+    """
+    Интерпретатор: обходит AST и выполняет программу.
+    """
     def __init__(self):
         self.env = Environment()
 
     # ---- выражения ----
 
     def eval_expr(self, expr: Expr) -> Any:
+        """Вычисление значения выражения."""
         if isinstance(expr, NumberExpr):
             return expr.value
         if isinstance(expr, StringExpr):
@@ -633,6 +740,7 @@ class Interpreter:
     # ---- стейтменты ----
 
     def exec_stmt(self, stmt: Stmt):
+        """Выполнить один стейтмент."""
         if isinstance(stmt, VarDeclStmt):
             value = self.eval_expr(stmt.init) if stmt.init is not None else None
             self.env.declare(stmt.name, value)
@@ -640,8 +748,8 @@ class Interpreter:
             value = self.eval_expr(stmt.expr)
             self.env.set(stmt.name, value)
         elif isinstance(stmt, InputStmt):
+            # простенький input: читаем строку и, если она вся из цифр, приводим к int
             user = input(f"{stmt.name}> ")
-            # можно попытаться привести к int
             if user.isdigit():
                 val: Any = int(user)
             else:
@@ -669,6 +777,7 @@ class Interpreter:
             raise RuntimeError("Unknown statement type")
 
     def exec_program(self, stmts: List[Stmt]):
+        """Выполнить список стейтментов (программу)."""
         for s in stmts:
             self.exec_stmt(s)
 
@@ -678,13 +787,21 @@ class Interpreter:
 # ==========================
 
 def run_anton(source: str):
+    """
+    Полный цикл для одной строки с исходником:
+    лексер -> парсер -> AST -> интерпретатор.
+    """
     lexer = Lexer(source)
     parser = Parser(lexer)
     program = parser.parse_program()
     interp = Interpreter()
     interp.exec_program(program)
 
+
 def run_file(path: str):
+    """
+    Запуск конкретного .anton-файла с обработкой ошибок.
+    """
     try:
         with open(path, "r", encoding="utf-8") as f:
             source = f.read()
@@ -700,7 +817,14 @@ def run_file(path: str):
     except Exception as e:
         print(f"[НЕИЗВЕСТНАЯ ОШИБКА] {e}")
 
+
 def run_with_menu(directory="."):
+    """
+    Простое текстовое меню:
+    - ищет все .anton файлы в папке
+    - предлагает выбрать номер
+    - запускает выбранный.
+    """
     files = [f for f in os.listdir(directory) if f.endswith(".anton")]
 
     if not files:
@@ -732,5 +856,7 @@ def run_with_menu(directory="."):
         else:
             print("Нет такого номера.")
 
+
 if __name__ == "__main__":
+    # Точка входа: запустить меню в текущей папке
     run_with_menu(".")
